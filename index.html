@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cologne Picker</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.card {
+  background: #1c1c1c;
+  padding: 25px;
+  border-radius: 12px;
+  width: 360px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-top: 15px;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+.value {
+  float: right;
+  opacity: 0.7;
+}
+
+.output {
+  margin-top: 25px;
+  padding: 15px;
+  background: #000;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+/* Toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  float: right;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #444;
+  transition: .3s;
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #2ecc71;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Cologne Picker</h1>
+
+  <label>
+    Temperature (°F)
+    <span class="value" id="tempVal"></span>
+    <input type="range" min="20" max="100" value="70" id="temp">
+  </label>
+
+  <label>
+    Start Time
+    <span class="value" id="startVal"></span>
+    <input type="range" min="7" max="22" value="14" id="start">
+  </label>
+
+  <label>
+    End Time
+    <span class="value" id="endVal"></span>
+    <input type="range" min="7" max="22" value="18" id="end">
+  </label>
+
+  <label>
+    Formality (%)
+    <span class="value" id="formVal"></span>
+    <input type="range" min="0" max="100" value="50" id="formality">
+  </label>
+
+  <label>
+    Outdoor
+    <span class="switch">
+      <input type="checkbox" id="environment">
+      <span class="slider"></span>
+    </span>
+  </label>
+
+  <div class="output" id="result">Recommended: —</div>
+</div>
+
+<script>
+const colognes = [
+  { name:"Perry Ellis Pure Blue", temp:[70,95], time:[7,16], form:[10,40], type:"fresh" },
+  { name:"Dolce & Gabbana Light Blue", temp:[75,95], time:[7,19], form:[20,45], type:"fresh" },
+  { name:"Rasasi Hawas", temp:[70,90], time:[7,19], form:[30,60], type:"fresh" },
+  { name:"Versace Eros", temp:[60,80], time:[16,20], form:[40,65], type:"sweet" },
+  { name:"Prada Luna Rossa Carbon", temp:[55,75], time:[7,20], form:[40,70], type:"clean" },
+  { name:"Valentino Uomo Born in Roma", temp:[60,80], time:[16,20], form:[45,75], type:"clean" },
+  { name:"Club de Nuit Intense Man", temp:[50,75], time:[7,19], form:[50,80], type:"fresh" },
+  { name:"Ralph Lauren Polo Red", temp:[45,70], time:[7,19], form:[35,60], type:"warm" },
+  { name:"Guerlain L’Homme Idéal", temp:[45,65], time:[17,21], form:[55,85], type:"sweet" },
+  { name:"Burberry London", temp:[35,55], time:[7,19], form:[50,80], type:"warm" },
+  { name:"Bentley for Men Intense", temp:[30,55], time:[19,22], form:[65,90], type:"dark" },
+  { name:"Stronger With You Intensely", temp:[40,65], time:[17,22], form:[50,80], type:"sweet" },
+  { name:"Afnan 9PM", temp:[45,70], time:[20,22], form:[40,65], type:"sweet" },
+  { name:"JPG Le Male Elixir", temp:[40,65], time:[20,22], form:[60,90], type:"dark" },
+  { name:"Spicebomb Night Vision", temp:[35,60], time:[18,22], form:[55,85], type:"dark" },
+  { name:"Azzaro The Most Wanted EDP", temp:[40,65], time:[19,22], form:[65,90], type:"dark" }
+];
+
+const temp = document.getElementById("temp");
+const start = document.getElementById("start");
+const end = document.getElementById("end");
+const formality = document.getElementById("formality");
+const env = document.getElementById("environment");
+
+const tempVal = document.getElementById("tempVal");
+const startVal = document.getElementById("startVal");
+const endVal = document.getElementById("endVal");
+const formVal = document.getElementById("formVal");
+const result = document.getElementById("result");
+
+function scoreRange(v, min, max) {
+  if (v >= min && v <= max) return 1;
+  const d = Math.min(Math.abs(v-min), Math.abs(v-max));
+  return Math.max(0, 1 - d/20);
+}
+
+function pickCologne() {
+  tempVal.textContent = temp.value + "°F";
+  startVal.textContent = start.value + ":00";
+  endVal.textContent = end.value + ":00";
+  formVal.textContent = formality.value + "%";
+
+  let best = { name:"—", score:-1 };
+  const outdoor = env.checked;
+
+  colognes.forEach(c => {
+    let score =
+      scoreRange(+temp.value, ...c.temp) * 2 +
+      scoreRange(+start.value, ...c.time) +
+      scoreRange(+end.value, ...c.time) +
+      scoreRange(+formality.value, ...c.form) * 1.5;
+
+    if (outdoor) {
+      if (c.type === "fresh") score += 0.5;
+      if (c.type === "sweet") score += 0.3;
+    } else {
+      if (c.type === "dark") score -= 0.6;
+      if (c.type === "sweet") score -= 0.3;
+      if (c.type === "clean") score += 0.3;
+    }
+
+    if (score > best.score) best = { name:c.name, score };
+  });
+
+  result.textContent = "Recommended: " + best.name;
+}
+
+[temp, start, end, formality, env].forEach(el => el.oninput = pickCologne);
+pickCologne();
+</script>
+
+</body>
+</html>
